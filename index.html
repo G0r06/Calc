@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>US Import Cost Calculator</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #151b2e;
+            --bg-tertiary: #1e2740;
+            --accent-primary: #00d4ff;
+            --accent-secondary: #7b61ff;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --border-color: #2d3b5a;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(135deg, #0a0e1a 0%, #1a1f35 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 50% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%);
+            animation: rotate 20s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .container {
+            max-width: 700px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4),
+                        0 0 1px rgba(255, 255, 255, 0.1) inset;
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            animation: fadeIn 0.8s ease-out 0.2s both;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            animation: fadeIn 0.8s ease-out 0.4s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .exchange-rates {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 32px;
+            border: 1px solid var(--border-color);
+            animation: fadeIn 0.8s ease-out 0.6s both;
+        }
+
+        .rate-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .rates-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .rate-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        .rate-label {
+            color: var(--text-secondary);
+        }
+
+        .rate-value {
+            color: var(--accent-primary);
+            font-weight: 500;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+            animation: fadeIn 0.8s ease-out calc(0.8s + var(--delay, 0s)) both;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.1);
+        }
+
+        input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .currency-symbol {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        .calculate-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 0.8s ease-out 1.4s both;
+        }
+
+        .calculate-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .calculate-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .calculate-btn:active {
+            transform: translateY(0);
+        }
+
+        .calculate-btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .results {
+            margin-top: 32px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+        }
+
+        .results.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .breakdown {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .breakdown-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .breakdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .breakdown-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .breakdown-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            font-size: 15px;
+        }
+
+        .breakdown-item.total {
+            margin-top: 16px;
+            padding-top: 20px;
+            border-top: 2px solid var(--border-color);
+        }
+
+        .breakdown-item.total .breakdown-label {
+            font-weight: 700;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+
+        .breakdown-item.total .breakdown-value {
+            font-size: 24px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .info-text {
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: rgba(0, 212, 255, 0.05);
+            border-left: 3px solid var(--accent-primary);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                padding: 24px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .rates-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>🇺🇸 → 🇦🇲 Import Calculator</h1>
+                <p class="subtitle">Calculate total cost with Armenian customs & shipping</p>
+            </div>
+
+            <div class="exchange-rates">
+                <div class="rate-title">Ameriabank Exchange Rates</div>
+                <div class="rates-grid">
+                    <div class="rate-item">
+                        <span class="rate-label">USD → AMD</span>
+                        <span class="rate-value" id="usd-rate">381.00</span>
+                    </div>
+                    <div class="rate-item">
+                        <span class="rate-label">EUR → AMD</span>
+                        <span class="rate-value" id="eur-rate">458.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <form id="calculator-form">
+                <div class="input-group" style="--delay: 0s">
+                    <label for="price">Item Price</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="price" step="0.01" placeholder="0.00" required>
+                        <span class="currency-symbol">USD</span>
+                    </div>
+                </div>
+
+                <div class="input-group" style="--delay: 0.1s">
+                    <label for="shipping">US Shipping Cost</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="shipping" step="0.01" placeholder="0.00" required>
+                        <span class="currency-symbol">USD</span>
+                    </div>
+                </div>
+
+                <div class="input-group" style="--delay: 0.2s">
+                    <label for="weight">Package Weight</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="weight" step="0.01" placeholder="0.00" required>
+                        <span class="currency-symbol">kg</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="calculate-btn">
+                    <span>Calculate Total Cost</span>
+                </button>
+            </form>
+
+            <div class="results" id="results">
+                <div class="breakdown">
+                    <div class="breakdown-title">Cost Breakdown</div>
+                    
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">Item Price</span>
+                        <span class="breakdown-value" id="result-price">—</span>
+                    </div>
+                    
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">US Shipping</span>
+                        <span class="breakdown-value" id="result-shipping">—</span>
+                    </div>
+                    
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">Subtotal in USD</span>
+                        <span class="breakdown-value" id="result-subtotal-usd">—</span>
+                    </div>
+                    
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">Subtotal in EUR</span>
+                        <span class="breakdown-value" id="result-subtotal-eur">—</span>
+                    </div>
+                    
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">Import Tax (15% over €200)</span>
+                        <span class="breakdown-value" id="result-tax">—</span>
+                    </div>
+                    
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">Freight Forward (<span id="weight-display">0</span> kg @ 6,000 AMD/kg)</span>
+                        <span class="breakdown-value" id="result-freight">—</span>
+                    </div>
+                    
+                    <div class="breakdown-item total">
+                        <span class="breakdown-label">Total Cost in AMD</span>
+                        <span class="breakdown-value" id="result-total">—</span>
+                    </div>
+                </div>
+
+                <div class="info-text">
+                    💡 Customs tax applies to the amount exceeding €200. Freight forwarding charged at 6,000 AMD per kilogram. Exchange rates from Ameriabank.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Exchange rates from Ameriabank (sell rates)
+        const USD_TO_AMD = 381.00;
+        const EUR_TO_AMD = 458.00;
+        const USD_TO_EUR = 1.04; // Approximate current rate
+
+        document.getElementById('calculator-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const price = parseFloat(document.getElementById('price').value);
+            const shipping = parseFloat(document.getElementById('shipping').value);
+            const weight = parseFloat(document.getElementById('weight').value);
+
+            // Calculate subtotal in USD
+            const subtotalUSD = price + shipping;
+
+            // Convert to EUR
+            const subtotalEUR = subtotalUSD * USD_TO_EUR;
+
+            // Calculate tax (15% on amount over 200 EUR)
+            let taxEUR = 0;
+            if (subtotalEUR > 200) {
+                taxEUR = (subtotalEUR - 200) * 0.15;
+            }
+
+            // Calculate freight forwarding in AMD
+            const freightAMD = weight * 6000;
+
+            // Convert everything to AMD
+            const itemAMD = price * USD_TO_AMD;
+            const shippingAMD = shipping * USD_TO_AMD;
+            const subtotalAMD = subtotalUSD * USD_TO_AMD;
+            const taxAMD = taxEUR * EUR_TO_AMD;
+
+            // Total
+            const totalAMD = subtotalAMD + taxAMD + freightAMD;
+
+            // Display results
+            document.getElementById('result-price').textContent = formatAMD(itemAMD);
+            document.getElementById('result-shipping').textContent = formatAMD(shippingAMD);
+            document.getElementById('result-subtotal-usd').textContent = `$${subtotalUSD.toFixed(2)}`;
+            document.getElementById('result-subtotal-eur').textContent = `€${subtotalEUR.toFixed(2)}`;
+            document.getElementById('result-tax').textContent = taxEUR > 0 ? `€${taxEUR.toFixed(2)} (${formatAMD(taxAMD)})` : '€0.00 (0 AMD)';
+            document.getElementById('result-freight').textContent = formatAMD(freightAMD);
+            document.getElementById('result-total').textContent = formatAMD(totalAMD);
+            document.getElementById('weight-display').textContent = weight.toFixed(2);
+
+            // Show results with animation
+            const results = document.getElementById('results');
+            results.classList.add('show');
+            
+            // Scroll to results on mobile
+            setTimeout(() => {
+                results.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        });
+
+        function formatAMD(amount) {
+            return new Intl.NumberFormat('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount) + ' AMD';
+        }
+
+        // Update exchange rate display
+        document.getElementById('usd-rate').textContent = USD_TO_AMD.toFixed(2);
+        document.getElementById('eur-rate').textContent = EUR_TO_AMD.toFixed(2);
+    </script>
+</body>
+</html>
