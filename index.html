@@ -455,12 +455,17 @@
                     </div>
                     
                     <div class="breakdown-item">
+                        <span class="breakdown-label">Subtotal in AMD (before tax)</span>
+                        <span class="breakdown-value" id="result-subtotal-amd-before-tax">—</span>
+                    </div>
+                    
+                    <div class="breakdown-item">
                         <span class="breakdown-label">Import Tax (15% over €200)</span>
                         <span class="breakdown-value" id="result-tax">—</span>
                     </div>
                     
                     <div class="breakdown-item">
-                        <span class="breakdown-label">Subtotal in AMD (before freight)</span>
+                        <span class="breakdown-label">Subtotal in AMD (after tax, before freight)</span>
                         <span class="breakdown-value" id="result-subtotal-amd">—</span>
                     </div>
                     
@@ -524,12 +529,14 @@
             // Total
             const totalAMD = subtotalAMD + taxAMD + freightAMD;
             const subtotalBeforeFreightAMD = subtotalAMD + taxAMD;
+            const subtotalBeforeTaxAMD = subtotalAMD;
 
             // Display results
             document.getElementById('result-price').textContent = formatAMD(itemAMD);
             document.getElementById('result-shipping').textContent = formatAMD(shippingAMD);
             document.getElementById('result-subtotal-usd').textContent = `$${subtotalUSD.toFixed(2)}`;
             document.getElementById('result-subtotal-eur').textContent = `€${subtotalEUR.toFixed(2)}`;
+            document.getElementById('result-subtotal-amd-before-tax').textContent = formatAMD(subtotalBeforeTaxAMD);
             document.getElementById('result-tax').textContent = taxEUR > 0 ? `€${taxEUR.toFixed(2)} (${formatAMD(taxAMD)})` : '€0.00 (0 AMD)';
             document.getElementById('result-subtotal-amd').textContent = formatAMD(subtotalBeforeFreightAMD);
             document.getElementById('result-freight').textContent = formatAMD(freightAMD);
