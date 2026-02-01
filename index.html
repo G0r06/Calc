@@ -460,6 +460,11 @@
                     </div>
                     
                     <div class="breakdown-item">
+                        <span class="breakdown-label">Subtotal in AMD (before freight)</span>
+                        <span class="breakdown-value" id="result-subtotal-amd">—</span>
+                    </div>
+                    
+                    <div class="breakdown-item">
                         <span class="breakdown-label">Freight Forward (<span id="weight-display">0</span> kg @ 6,000 AMD/kg)</span>
                         <span class="breakdown-value" id="result-freight">—</span>
                     </div>
@@ -518,6 +523,7 @@
 
             // Total
             const totalAMD = subtotalAMD + taxAMD + freightAMD;
+            const subtotalBeforeFreightAMD = subtotalAMD + taxAMD;
 
             // Display results
             document.getElementById('result-price').textContent = formatAMD(itemAMD);
@@ -525,6 +531,7 @@
             document.getElementById('result-subtotal-usd').textContent = `$${subtotalUSD.toFixed(2)}`;
             document.getElementById('result-subtotal-eur').textContent = `€${subtotalEUR.toFixed(2)}`;
             document.getElementById('result-tax').textContent = taxEUR > 0 ? `€${taxEUR.toFixed(2)} (${formatAMD(taxAMD)})` : '€0.00 (0 AMD)';
+            document.getElementById('result-subtotal-amd').textContent = formatAMD(subtotalBeforeFreightAMD);
             document.getElementById('result-freight').textContent = formatAMD(freightAMD);
             document.getElementById('result-total').textContent = formatAMD(totalAMD);
             document.getElementById('weight-display').textContent = weight.toFixed(2);
