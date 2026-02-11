@@ -493,11 +493,39 @@
     </div>
 
     <script>
-        // Exchange rates from Ameriabank (sell rates)
-        const USD_TO_AMD = 381.00;
-        const EUR_TO_AMD = 458.00;
+        // Exchange rates from Ameriabank (sell rates) - will be updated on load
+        let USD_TO_AMD = 381.00;
+        let EUR_TO_AMD = 458.00;
         const USD_TO_EUR = 1.20; // USD to EUR rate (EUR is stronger)
         const PAYPAL_MARKUP = 0.0142; // 1.42% PayPal conversion fee
+
+        // Fetch current exchange rates
+        async function fetchExchangeRates() {
+            try {
+                // Fetch AMD rates via exchangerate API
+                const response = await fetch('https://api.exchangerate-api.com/v4/latest/AMD');
+                const data = await response.json();
+                
+                if (data && data.rates) {
+                    // Calculate sell rates (add small markup similar to bank rates)
+                    const BANK_MARKUP = 1.013; // ~1.3% bank markup
+                    USD_TO_AMD = (1 / data.rates.USD) * BANK_MARKUP;
+                    EUR_TO_AMD = (1 / data.rates.EUR) * BANK_MARKUP;
+                    
+                    // Update display
+                    document.getElementById('usd-rate').textContent = USD_TO_AMD.toFixed(2);
+                    document.getElementById('eur-rate').textContent = EUR_TO_AMD.toFixed(2);
+                    
+                    console.log('Rates updated:', { USD_TO_AMD, EUR_TO_AMD });
+                }
+            } catch (error) {
+                console.error('Failed to fetch rates, using defaults:', error);
+                // Keep using the hardcoded defaults if fetch fails
+            }
+        }
+
+        // Fetch rates when page loads
+        fetchExchangeRates();
 
         document.getElementById('calculator-form').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -564,10 +592,6 @@
                 maximumFractionDigits: 0
             }).format(amount) + ' AMD';
         }
-
-        // Update exchange rate display
-        document.getElementById('usd-rate').textContent = USD_TO_AMD.toFixed(2);
-        document.getElementById('eur-rate').textContent = EUR_TO_AMD.toFixed(2);
     </script>
 </body>
 </html>
