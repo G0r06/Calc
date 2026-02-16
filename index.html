@@ -499,27 +499,39 @@
         const USD_TO_EUR = 1.20; // USD to EUR rate (EUR is stronger)
         const PAYPAL_MARKUP = 0.0142; // 1.42% PayPal conversion fee
 
-        // Fetch current exchange rates
+        // Fetch current exchange rates directly from Ameriabank website
         async function fetchExchangeRates() {
             try {
-                // Fetch AMD rates via exchangerate API
-                const response = await fetch('https://api.exchangerate-api.com/v4/latest/AMD');
-                const data = await response.json();
+                const response = await fetch('https://ameriabank.am/en/exchange-rates');
+                const html = await response.text();
                 
-                if (data && data.rates) {
-                    // Calculate sell rates (add small markup similar to bank rates)
-                    const BANK_MARKUP = 1.013; // ~1.3% bank markup
-                    USD_TO_AMD = (1 / data.rates.USD) * BANK_MARKUP;
-                    EUR_TO_AMD = (1 / data.rates.EUR) * BANK_MARKUP;
-                    
-                    // Update display
-                    document.getElementById('usd-rate').textContent = USD_TO_AMD.toFixed(2);
-                    document.getElementById('eur-rate').textContent = EUR_TO_AMD.toFixed(2);
-                    
-                    console.log('Rates updated:', { USD_TO_AMD, EUR_TO_AMD });
-                }
+                // Parse the HTML to find USD and EUR sell rates
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Find the exchange rate table rows
+                const rows = doc.querySelectorAll('table tr');
+                
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length >= 4) {
+                        const currency = cells[0]?.textContent.trim();
+                        const sellRate = cells[2]?.textContent.trim();
+                        
+                        if (currency === 'USD' && sellRate) {
+                            USD_TO_AMD = parseFloat(sellRate);
+                            document.getElementById('usd-rate').textContent = USD_TO_AMD.toFixed(2);
+                        }
+                        if (currency === 'EUR' && sellRate) {
+                            EUR_TO_AMD = parseFloat(sellRate);
+                            document.getElementById('eur-rate').textContent = EUR_TO_AMD.toFixed(2);
+                        }
+                    }
+                });
+                
+                console.log('Rates updated from Ameriabank:', { USD_TO_AMD, EUR_TO_AMD });
             } catch (error) {
-                console.error('Failed to fetch rates, using defaults:', error);
+                console.error('Failed to fetch rates from Ameriabank, using defaults:', error);
                 // Keep using the hardcoded defaults if fetch fails
             }
         }
