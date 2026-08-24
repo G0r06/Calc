@@ -499,37 +499,48 @@
         const USD_TO_EUR = 1.20; // USD to EUR rate (EUR is stronger)
         const PAYPAL_MARKUP = 0.0142; // 1.42% PayPal conversion fee
 
-        // Fetch exchange rates from Rate.am using a CORS proxy
-       async function fetchExchangeRates() {
-  const apiKey = 'ed121f24';
-  const targetUrl = 'https://www.rate.am/hy/armenian-dram-exchange-rates/banks';
-  
-  // Keep encodeURIComponent to safely transport the URL string
-  const proxyUrl = `https://corsproxy.io/?key=${apiKey}&url=${encodeURIComponent(targetUrl)}`;
+      async function fetchExchangeRates() {
+        const apiKey = 'ed121f24';
+        // Rate.am public JSON rates endpoint
+        const targetUrl = 'https://www.rate.am/api/public/rates';
+        const proxyUrl = `https://corsproxy.io/?key=${apiKey}&url=${encodeURIComponent(targetUrl)}`;
 
-  try {
-    const response = await fetch(proxyUrl, {
-      headers: {
-        // Send a standard Accept header so rate.am returns normal HTML
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'
-      }
-    });
+        try {
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+        
+        const data = await response.json();
+        
+        // Locate Ameriabank's data block
+        // Ameriabank ID on Rate.am is typically 'ameria' or slug 'ameriabank'
+        const ameriaData = data.banks?.find(b => 
+            b.id === 'ameria' || 
+            b.slug === 'ameriabank' || 
+            b.title?.hy === 'Ամերիաբանկ' || 
+            b.title?.en === 'Ameriabank'
+        );
 
-    const htmlText = await response.text();
-    
-    // Parse the returned HTML using DOMParser
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlText, 'text/html');
-    
-    // Now you can query the tables or rows inside 'doc'
-    console.log(doc.title);
-    
-  } catch (error) {
-    console.error('Error fetching rates:', error);
-  }
+        if (ameriaData) {
+            // Extract USD sell rate
+            if (ameriaData.list?.USD?.sell) {
+                USD_TO_AMD = parseFloat(ameriaData.list.USD.sell);
+                document.getElementById('usd-rate').textContent = USD_TO_AMD.toFixed(2);
+            }
+
+            // Extract EUR sell rate
+            if (ameriaData.list?.EUR?.sell) {
+                EUR_TO_AMD = parseFloat(ameriaData.list.EUR.sell);
+                document.getElementById('eur-rate').textContent = EUR_TO_AMD.toFixed(2);
+            }
+
+            console.log('Rates successfully updated from Rate.am:', { USD_TO_AMD, EUR_TO_AMD });
+        } else {
+            console.warn('Ameriabank not found in Rate.am response, using defaults');
+        }
+    } catch (error) {
+        console.error('Failed to fetch rates from Rate.am, using defaults:', error);
+    }
 }
-
 fetchExchangeRates();
 
             try {
