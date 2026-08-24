@@ -389,11 +389,11 @@
                 <div class="rates-grid">
                     <div class="rate-item">
                         <span class="rate-label">USD → AMD</span>
-                        <p>USD Sell Rate: <span id="usd-rate">381.00</span> AMD</p>
+                        <span class="rate-value" id="usd-rate">381.00</span>
                     </div>
                     <div class="rate-item">
                         <span class="rate-label">EUR → AMD</span>
-                        <p>EUR Sell Rate: <span id="eur-rate">458.00</span> AMD</p>      
+                        <span class="rate-value" id="eur-rate">458.00</span>
                     </div>
                 </div>
             </div>
@@ -499,50 +499,20 @@
         const USD_TO_EUR = 1.20; // USD to EUR rate (EUR is stronger)
         const PAYPAL_MARKUP = 0.0142; // 1.42% PayPal conversion fee
 
-      async function fetchExchangeRates() {
-    const apiKey = 'ed121f24';
-    const targetUrl = 'https://www.rate.am/api/public/rates';
-    const proxyUrl = `https://corsproxy.io/?key=${apiKey}&url=${encodeURIComponent(targetUrl)}`;
+        // Fetch exchange rates from Rate.am using a CORS proxy
+        async function fetchExchangeRates() {
+            const targetUrl = 'https://www.rate.am/hy/armenian-dram-exchange-rates/banks';
+            const proxyUrl = `https://corsproxy.io/?key=ed121f24${encodeURIComponent(targetUrl)}`;
 
-    try {
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-        
-        const data = await response.json();
-        
-        // Find Ameriabank in the response
-        const ameriaData = data.banks?.find(b => 
-            b.id === 'ameria' || 
-            b.slug === 'ameriabank' || 
-            b.title?.hy === 'Ամերիաբանկ' || 
-            b.title?.en === 'Ameriabank'
-        );
-
-        if (ameriaData) {
-            // Extract USD sell rate
-            if (ameriaData.list?.USD?.sell) {
-                USD_TO_AMD = parseFloat(ameriaData.list.USD.sell);
-                const usdElem = document.getElementById('usd-rate');
-                if (usdElem) usdElem.textContent = USD_TO_AMD.toFixed(2);
-            }
-
-            // Extract EUR sell rate
-            if (ameriaData.list?.EUR?.sell) {
-                EUR_TO_AMD = parseFloat(ameriaData.list.EUR.sell);
-                const eurElem = document.getElementById('eur-rate');
-                if (eurElem) eurElem.textContent = EUR_TO_AMD.toFixed(2);
-            }
-
-            console.log('Rates updated:', { USD_TO_AMD, EUR_TO_AMD });
-        }
-    } catch (error) {
-        console.error('Failed to update DOM with new rates:', error);
-    }
-}
-
-// Call fetch when page loads
-document.addEventListener('DOMContentLoaded', fetchExchangeRates);
-fetchExchangeRates();
+            const headers = {
+                'accept': '*/*',
+                'accept-language': 'en-US,en;q=0.9,ru;q=0.8,hy;q=0.7',
+                'next-router-prefetch': '1',
+                'next-router-state-tree': '%5B%22%22%2C%7B%22children%22%3A%5B%5B%22lang%22%2C%22hy%22%2C%22d%22%5D%2C%7B%22children%22%3A%5B%22armenian-dram-exchange-rates%22%2C%7B%22children%22%3A%5B%22banks%22%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2C%22%2Fhy%2Farmenian-dram-exchange-rates%2Fbanks%22%2C%22refresh%22%5D%7D%5D%7D%5D%7D%2Cnull%2Cnull%2Ctrue%5D%7D%5D',
+                'next-url': '/hy/armenian-dram-exchange-rates/banks',
+                'priority': 'u=1, i',
+                'rsc': '1'
+            };
 
             try {
                 const response = await fetch(proxyUrl, { headers });
