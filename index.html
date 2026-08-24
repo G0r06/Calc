@@ -502,7 +502,7 @@
         // Fetch exchange rates from Rate.am using a CORS proxy
         async function fetchExchangeRates() {
             const targetUrl = 'https://www.rate.am/hy/armenian-dram-exchange-rates/banks';
-            const proxyUrl = `https://corsproxy.io/?key=ed121f24${encodeURIComponent(targetUrl)}`;
+            const proxyUrl = `https://corsproxy.io/?key=ed121f24${(targetUrl)}`;
 
             const headers = {
                 'accept': '*/*',
