@@ -500,19 +500,37 @@
         const PAYPAL_MARKUP = 0.0142; // 1.42% PayPal conversion fee
 
         // Fetch exchange rates from Rate.am using a CORS proxy
-        async function fetchExchangeRates() {
-            const apiKey = 'ed121f24';
-            const targetUrl = 'https://www.rate.am/hy/armenian-dram-exchange-rates/banks';
-            const proxyUrl = `https://corsproxy.io/?key=${apiKey}&url=${(targetUrl)}`;
-            const headers = {
-                'accept': '*/*',
-                'accept-language': 'en-US,en;q=0.9,ru;q=0.8,hy;q=0.7',
-                'next-router-prefetch': '1',
-                'next-router-state-tree': '%5B%22%22%2C%7B%22children%22%3A%5B%5B%22lang%22%2C%22hy%22%2C%22d%22%5D%2C%7B%22children%22%3A%5B%22armenian-dram-exchange-rates%22%2C%7B%22children%22%3A%5B%22banks%22%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2C%22%2Fhy%2Farmenian-dram-exchange-rates%2Fbanks%22%2C%22refresh%22%5D%7D%5D%7D%5D%7D%2Cnull%2Cnull%2Ctrue%5D%7D%5D',
-                'next-url': '/hy/armenian-dram-exchange-rates/banks',
-                'priority': 'u=1, i',
-                'rsc': '1'
-            };
+       async function fetchExchangeRates() {
+  const apiKey = 'ed121f24';
+  const targetUrl = 'https://www.rate.am/hy/armenian-dram-exchange-rates/banks';
+  
+  // Keep encodeURIComponent to safely transport the URL string
+  const proxyUrl = `https://corsproxy.io/?key=${apiKey}&url=${encodeURIComponent(targetUrl)}`;
+
+  try {
+    const response = await fetch(proxyUrl, {
+      headers: {
+        // Send a standard Accept header so rate.am returns normal HTML
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'
+      }
+    });
+
+    const htmlText = await response.text();
+    
+    // Parse the returned HTML using DOMParser
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlText, 'text/html');
+    
+    // Now you can query the tables or rows inside 'doc'
+    console.log(doc.title);
+    
+  } catch (error) {
+    console.error('Error fetching rates:', error);
+  }
+}
+
+fetchExchangeRates();
 
             try {
                 const response = await fetch(proxyUrl, { headers });
