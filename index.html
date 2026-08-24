@@ -385,7 +385,7 @@
             </div>
 
             <div class="exchange-rates">
-                <div class="rate-title">Ameriabank Exchange Rates</div>
+                <div class="rate-title" id="rate-title">Ameriabank Exchange Rates (Rate.am)</div>
                 <div class="rates-grid">
                     <div class="rate-item">
                         <span class="rate-label">USD → AMD</span>
@@ -486,53 +486,83 @@
                 </div>
 
                 <div class="info-text">
-                    💡 Customs tax applies to the amount exceeding €200. Freight forwarding charged at 6,000 AMD per kilogram. Exchange rates from Ameriabank.
+                    💡 Customs tax applies to the amount exceeding €200. Freight forwarding charged at 6,000 AMD per kilogram. Exchange rates from Rate.am (Ameriabank).
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Exchange rates from Ameriabank (sell rates) - will be updated on load
+        // Exchange rates (sell rates) - will be updated on load
         let USD_TO_AMD = 381.00;
         let EUR_TO_AMD = 458.00;
         const USD_TO_EUR = 1.20; // USD to EUR rate (EUR is stronger)
         const PAYPAL_MARKUP = 0.0142; // 1.42% PayPal conversion fee
 
-        // Fetch current exchange rates directly from Ameriabank website
+        // Fetch exchange rates from Rate.am using a CORS proxy
         async function fetchExchangeRates() {
+            const targetUrl = 'https://www.rate.am/hy/armenian-dram-exchange-rates/banks';
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+
+            const headers = {
+                'accept': '*/*',
+                'accept-language': 'en-US,en;q=0.9,ru;q=0.8,hy;q=0.7',
+                'next-router-prefetch': '1',
+                'next-router-state-tree': '%5B%22%22%2C%7B%22children%22%3A%5B%5B%22lang%22%2C%22hy%22%2C%22d%22%5D%2C%7B%22children%22%3A%5B%22armenian-dram-exchange-rates%22%2C%7B%22children%22%3A%5B%22banks%22%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2C%22%2Fhy%2Farmenian-dram-exchange-rates%2Fbanks%22%2C%22refresh%22%5D%7D%5D%7D%5D%7D%2Cnull%2Cnull%2Ctrue%5D%7D%5D',
+                'next-url': '/hy/armenian-dram-exchange-rates/banks',
+                'priority': 'u=1, i',
+                'rsc': '1'
+            };
+
             try {
-                const response = await fetch('https://ameriabank.am/en/exchange-rates');
-                const html = await response.text();
-                
-                // Parse the HTML to find USD and EUR sell rates
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                
-                // Find the exchange rate table rows
-                const rows = doc.querySelectorAll('table tr');
-                
-                rows.forEach(row => {
-                    const cells = row.querySelectorAll('td');
-                    if (cells.length >= 4) {
-                        const currency = cells[0]?.textContent.trim();
-                        const sellRate = cells[2]?.textContent.trim();
-                        
-                        if (currency === 'USD' && sellRate) {
-                            USD_TO_AMD = parseFloat(sellRate);
-                            document.getElementById('usd-rate').textContent = USD_TO_AMD.toFixed(2);
-                        }
-                        if (currency === 'EUR' && sellRate) {
-                            EUR_TO_AMD = parseFloat(sellRate);
-                            document.getElementById('eur-rate').textContent = EUR_TO_AMD.toFixed(2);
-                        }
+                const response = await fetch(proxyUrl, { headers });
+                const responseText = await response.text();
+
+                // Rate.am returns Next.js RSC data or HTML. Parse for Ameriabank's exchange rates.
+                let parsedUsd = null;
+                let parsedEur = null;
+
+                // 1. Try parsing RSC JSON payload lines
+                const lines = responseText.split('\n');
+                for (const line of lines) {
+                    if (line.includes('Ameriabank') || line.includes('Ամերիաբանկ')) {
+                        const usdMatch = line.match(/"USD".*?(\d{3}\.?\d*)/);
+                        const eurMatch = line.match(/"EUR".*?(\d{3}\.?\d*)/);
+                        if (usdMatch) parsedUsd = parseFloat(usdMatch[1]);
+                        if (eurMatch) parsedEur = parseFloat(eurMatch[1]);
                     }
-                });
-                
-                console.log('Rates updated from Ameriabank:', { USD_TO_AMD, EUR_TO_AMD });
+                }
+
+                // 2. Fallback to DOM HTML parsing
+                if (!parsedUsd || !parsedEur) {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(responseText, 'text/html');
+                    const rows = doc.querySelectorAll('tr');
+
+                    rows.forEach(row => {
+                        const text = row.textContent;
+                        if (text.includes('Ameriabank') || text.includes('Ամերիաբանկ')) {
+                            const numbers = text.match(/\d{3}\.\d{2}/g);
+                            if (numbers && numbers.length >= 2) {
+                                parsedUsd = parseFloat(numbers[1]); // Sell rate
+                                parsedEur = parseFloat(numbers[3] || numbers[1]);
+                            }
+                        }
+                    });
+                }
+
+                if (parsedUsd) {
+                    USD_TO_AMD = parsedUsd;
+                    document.getElementById('usd-rate').textContent = USD_TO_AMD.toFixed(2);
+                }
+                if (parsedEur) {
+                    EUR_TO_AMD = parsedEur;
+                    document.getElementById('eur-rate').textContent = EUR_TO_AMD.toFixed(2);
+                }
+
+                console.log('Rates updated from Rate.am:', { USD_TO_AMD, EUR_TO_AMD });
             } catch (error) {
-                console.error('Failed to fetch rates from Ameriabank, using defaults:', error);
-                // Keep using the hardcoded defaults if fetch fails
+                console.error('Failed to fetch rates from Rate.am, using defaults:', error);
             }
         }
 
