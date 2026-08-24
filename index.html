@@ -392,15 +392,15 @@
             </div>
 
             <div class="exchange-rates">
-                <div class="rate-title" id="rate-title">Live Exchange Rates</div>
+                <div class="rate-title">Estimated Sell Rates</div>
                 <div class="rates-grid">
                     <div class="rate-item">
                         <span class="rate-label">USD → AMD</span>
-                        <span class="rate-value" id="usd-rate">381.00</span>
+                        <span class="rate-value" id="usd-rate">—</span>
                     </div>
                     <div class="rate-item">
                         <span class="rate-label">EUR → AMD</span>
-                        <span class="rate-value" id="eur-rate">458.00</span>
+                        <span class="rate-value" id="eur-rate">—</span>
                     </div>
                 </div>
                 <div class="rate-status" id="rate-status">Loading live rates…</div>
@@ -494,33 +494,27 @@
                 </div>
 
                 <div class="info-text">
-                    💡 Customs tax applies to the amount exceeding €200. Freight forwarding charged at 6,000 AMD per kilogram. Exchange rates are mid-market (via exchangerate-api.com), so a bank's actual buy/sell rate will differ slightly.
+                    💡 Customs tax applies to the amount exceeding €200. Freight forwarding charged at 6,000 AMD per kilogram. Rate shown is live mid-market with a fixed spread applied to estimate the bank's sell rate — nothing to enter manually.
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Fallback rates used until the live fetch succeeds (or if it fails)
-        let USD_TO_AMD = 381.00;
-        let EUR_TO_AMD = 458.00;
-        let USD_TO_EUR = 1 / 1.20; // placeholder, replaced by live data
+        // Fully automatic: fetch the live mid-market rate, then apply a fixed
+        // spread on top to estimate the bank's SELL rate (what they charge you
+        // to convert your AMD into USD/EUR). The spread % was derived once from
+        // real posted numbers (USD 362/367, EUR 418/432) as (sell - midpoint) /
+        // midpoint. No manual entry needed on every calculation — just refresh
+        // these two constants occasionally if the bank's spread drifts.
+        const USD_SPREAD_PCT = 0.69;  // sell rate premium over mid-market
+        const EUR_SPREAD_PCT = 1.65;
         const PAYPAL_MARKUP = 0.0142; // 1.42% PayPal conversion fee
 
-        // --- Live rate fetching -------------------------------------------------
-        // Why the old rate.am scrape didn't work:
-        // 1. It relied on a third-party CORS proxy (corsproxy.io) with a hardcoded
-        //    key, which is unreliable and rate-limited.
-        // 2. The request headers asked rate.am's Next.js server for RSC streaming
-        //    data, not rendered HTML — so the regexes never matched anything.
-        // 3. Even with real HTML, rate.am doesn't label each number with a bank
-        //    name in the markup; it's a flat list matched by position, which is
-        //    too fragile to scrape reliably from the browser.
-        //
-        // Fix: use a real JSON exchange-rate API instead. open.er-api.com is free,
-        // requires no API key, and has CORS enabled so it works directly from the
-        // browser with no proxy. Trade-off: this is the mid-market rate, not a
-        // specific bank's posted sell rate (banks mark up ~1-2% over mid-market).
+        let USD_TO_AMD = null; // effective sell rate, set after fetch
+        let EUR_TO_AMD = null;
+        let USD_TO_EUR = null;
+
         async function fetchExchangeRates() {
             const statusEl = document.getElementById('rate-status');
             try {
@@ -532,17 +526,25 @@
                     throw new Error('Unexpected API response shape');
                 }
 
-                USD_TO_AMD = data.rates.AMD;
-                EUR_TO_AMD = data.rates.AMD / data.rates.EUR; // AMD per 1 EUR
-                USD_TO_EUR = data.rates.EUR; // EUR per 1 USD
+                const midUsdToAmd = data.rates.AMD;
+                const midEurToAmd = data.rates.AMD / data.rates.EUR;
+
+                USD_TO_AMD = midUsdToAmd * (1 + USD_SPREAD_PCT / 100);
+                EUR_TO_AMD = midEurToAmd * (1 + EUR_SPREAD_PCT / 100);
+                USD_TO_EUR = USD_TO_AMD / EUR_TO_AMD;
 
                 document.getElementById('usd-rate').textContent = USD_TO_AMD.toFixed(2);
                 document.getElementById('eur-rate').textContent = EUR_TO_AMD.toFixed(2);
 
                 const updated = new Date(data.time_last_update_utc);
-                statusEl.textContent = `Updated ${updated.toLocaleDateString()} (mid-market rate)`;
+                statusEl.textContent = `Mid-market updated ${updated.toLocaleDateString()}, +${USD_SPREAD_PCT}%/+${EUR_SPREAD_PCT}% spread applied`;
             } catch (error) {
                 console.error('Failed to fetch live rates, using fallback values:', error);
+                USD_TO_AMD = 367.00;
+                EUR_TO_AMD = 432.00;
+                USD_TO_EUR = USD_TO_AMD / EUR_TO_AMD;
+                document.getElementById('usd-rate').textContent = USD_TO_AMD.toFixed(2);
+                document.getElementById('eur-rate').textContent = EUR_TO_AMD.toFixed(2);
                 statusEl.textContent = 'Live rates unavailable — using fallback values';
             }
         }
